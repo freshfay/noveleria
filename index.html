@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Para Melany 🌻</title>
+  <!-- Fuentes opcionales (mejora progresiva). Sin conexión se usan las de respaldo definidas en style.css -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Cookie&display=swap" rel="stylesheet">
+  <style>
+/* ===== Paleta y tipografía (medidas del video de referencia) ===== */
+:root {
+  --bg: #ffffff;
+  --trunk: #0d6a5a;          /* verde azulado del árbol */
+  --ground: #111111;
+  --ink: #1a1a1a;
+  --quote: #1a1a1a;
+
+  --font-text: "Cinzel", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+  --font-script: "Cookie", "Great Vibes", "Snell Roundhand", "Segoe Script", "Apple Chancery", cursive;
+  --font-hint: Arial, Helvetica, sans-serif;
+
+  /* los recalcula script.js */
+  --msg-left: 7vw;
+  --msg-top: 14vh;
+  --msg-width: 34vw;
+  --msg-bottom: 24vh;
+  --quote-right: 26vw;
+  --quote-bottom: 12vh;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+#stage { position: fixed; inset: 0; overflow: hidden; background: var(--bg); }
+.defs-holder { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ===== Suelo ===== */
+#ground {
+  position: absolute; left: 4vw; right: 3vw; top: 0; height: 2.5px;
+  background: var(--ground); border-radius: 2px;
+  transform-origin: 50% 0; transform: scaleX(0); opacity: 0;
+}
+
+/* ===== Árbol ===== */
+#treeWrap { position: absolute; will-change: transform; }
+#tree { width: 100%; height: 100%; overflow: visible; display: block; }
+.branch { fill: var(--trunk); }
+
+/* ===== Capa de efectos ===== */
+#fx { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hint { font-family: var(--font-hint); fill: #111; }
+#introHit { cursor: pointer; outline: none; }
+#introHit:focus-visible circle { stroke: #e8952b; stroke-width: 3; stroke-dasharray: 8 8; }
+
+/* ===== Texto ===== */
+#message {
+  position: absolute;
+  left: var(--msg-left); top: var(--msg-top);
+  width: var(--msg-width); bottom: var(--msg-bottom);
+  display: flex; flex-direction: column; justify-content: center;
+  font-family: var(--font-text);
+}
+.line {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 700;
+  font-size: clamp(14px, 2vw, 36px);
+  line-height: 1.5;
+  letter-spacing: .005em;
+}
+.line.title { margin-bottom: 1.5em; }
+.line.sign  { margin-top: .25em; padding-left: 22%; }
+
+.w { display: inline-block; white-space: nowrap; }
+.c { display: inline-block; opacity: 0; }
+.ico { vertical-align: -.16em; }
+.ico svg { width: 1.05em; height: 1.05em; display: block; }
+.caret { display: inline-block; width: 0; overflow: visible; font-weight: 700; }
+
+#quote {
+  position: absolute; margin: 0;
+  right: var(--quote-right); bottom: var(--quote-bottom);
+  max-width: 60vw; text-align: right; white-space: nowrap;
+  font-family: var(--font-script);
+  font-size: clamp(16px, 2.3vw, 42px);
+  line-height: 1.2; color: var(--quote);
+  opacity: 0;
+}
+
+/* ===== Cursor ===== */
+#cursor {
+  position: fixed; left: 0; top: 0; z-index: 20;
+  pointer-events: none; opacity: 0;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .3));
+}
+#cursor svg { display: block; }
+#cursor .cur-arrow { display: none; }
+#cursor.is-arrow .cur-hand { display: none; }
+#cursor.is-arrow .cur-arrow { display: block; }
+#ripple {
+  position: fixed; left: 0; top: 0; width: 60px; height: 60px; z-index: 19;
+  border-radius: 50%; border: 2px solid rgba(0, 0, 0, .35);
+  pointer-events: none; opacity: 0;
+}
+
+/* ===== Reiniciar ===== */
+#replay {
+  position: fixed; top: 12px; left: 12px; z-index: 30;
+  width: 34px; height: 34px; padding: 0;
+  display: grid; place-items: center;
+  color: #777; background: transparent;
+  border: 1px solid #ddd; border-radius: 50%;
+  cursor: pointer; opacity: 0; transition: opacity .4s;
+}
+#replay.show { opacity: .5; }
+#replay:hover, #replay:focus-visible { opacity: 1; }
+
+/* ===== Vertical (móvil) ===== */
+@media (max-aspect-ratio: 9/10) {
+  #message { text-align: left; }
+  .line { font-size: clamp(13px, 3.9vw, 26px); }
+  .line.sign { padding-left: 14%; }
+  #quote { right: auto; left: 0; width: 100%; max-width: none; text-align: center; white-space: normal;
+           font-size: clamp(16px, 5.4vw, 34px); padding: 0 6vw; }
+}
+
+</style>
+</head>
+<body>
+
+  <svg class="defs-holder" width="0" height="0" aria-hidden="true" focusable="false">
+    <defs id="defs"></defs>   <!-- script.js genera #sunflowerBig y #sunflowerSmall -->
+  </svg>
+
+  <main id="stage">
+    <div id="ground"></div>
+
+    <!-- Árbol (lienzo 800 x 900; el suelo está en y = 880) -->
+    <div id="treeWrap">
+      <svg id="tree" viewBox="0 0 800 900" aria-hidden="true">
+        <g id="branches"></g>
+        <g id="blooms"></g>
+      </svg>
+    </div>
+
+    <!-- Capa en píxeles de pantalla: girasol inicial, punto rojo y girasoles voladores -->
+    <svg id="fx">
+      <polyline id="callout" fill="none" stroke="#111" stroke-width="2" stroke-linejoin="round" opacity="0"/>
+      <text id="hint" class="hint" opacity="0">Click Aquí</text>
+      <g id="introFlower"><use href="#sunflowerBig" x="-50" y="-50" width="100" height="100"/></g>
+      <circle id="seedDot" fill="#c9202a" opacity="0"/>
+      <g id="flyerLayer"></g>
+      <g id="introHit" role="button" tabindex="0" aria-label="Click Aquí"><circle fill="transparent"/></g>
+    </svg>
+
+    <section id="message" aria-live="polite"></section>
+    <p id="quote"></p>
+
+    <div id="ripple"></div>
+    <div id="cursor" aria-hidden="true">
+      <svg class="cur-hand" viewBox="0 0 24 24" width="30" height="30">
+        <path d="M10 2.5c-.83 0-1.5.67-1.5 1.5v8.4l-1.4-1.3c-.6-.55-1.55-.5-2.1.1-.5.55-.5 1.4 0 1.95L8.6 20c.9 1.05 2.2 1.65 3.6 1.65h2.7c2.4 0 4.35-1.95 4.35-4.35v-5.1c0-.7-.55-1.25-1.25-1.25-.35 0-.65.14-.87.36a1.25 1.25 0 0 0-1.13-.7c-.5 0-.93.25-1.17.63a1.25 1.25 0 0 0-1.08-.6c-.3 0-.58.1-.8.27V4c0-.83-.67-1.5-1.5-1.5z"
+              fill="#fff" stroke="#111" stroke-width="1.1" stroke-linejoin="round"/>
+      </svg>
+      <svg class="cur-arrow" viewBox="0 0 24 24" width="26" height="26">
+        <path d="M3 2 L3 19.5 L7.6 15.4 L10.6 22 L13.4 20.8 L10.5 14.4 L16.6 14.2 Z"
+              fill="#fff" stroke="#111" stroke-width="1.4" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <button id="replay" type="button" aria-label="Reiniciar animación" title="Reiniciar (R)">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/>
+      </svg>
+    </button>
+  </main>
+
+  <script>
+/* =====================================================================
+   Feliz Día de las Flores Amarillas — réplica de la animación de referencia
+   Todo el estado visual es una función pura del tiempo:  render(T)
+   -> determinista, reiniciable y fácil de ajustar desde TIMELINE / CONFIG.
+   ===================================================================== */
+(() => {
+  'use strict';
+
+  /* ===================== 1. LÍNEA DE TIEMPO (segundos) ===================== */
+  // Medida sobre el video. Único lugar donde se ajustan los tiempos.
+  const TIMELINE = {
+    intro: {                            // girasol + "Click Aquí" + cursor (mano)
+      cursorStart: 0.2, cursorArrive: 1.3,
+      pressAt: 1.5,
+      clickAt: 1.8                      // clic automático si el usuario no lo hace (fallback)
+    },
+    growth: {                           // growth.start debe coincidir con intro.clickAt
+      start: 1.8,
+      shrink: [1.8, 2.9],               // girasol -> punto rojo
+      calloutFade: [1.8, 2.0],
+      ground: [3.0, 4.1],               // la línea negra se dibuja desde el centro
+      fall: [3.4, 4.6],                 // el punto rojo cae sobre la línea
+      dotFade: [4.7, 5.2],
+      trunk: [4.9, 6.9],                // tronco (silueta rellena que crece)
+      branches: { start: 6.6, stagger: 0.15, dur: 1.1 }
+    },
+    flowering: { start: 9.5, end: 15.0 },
+    reposition: { start: 15.0, end: 18.4 },   // el árbol se achica y se va a la derecha
+    message: {
+      flyersStart: 19.4, flyersLastStart: 33.0,
+      lines: [                          // una entrada por línea de CONFIG.texts.lines (máquina de escribir)
+        { at: 19.4, dur: 2.0 },         // título
+        { at: 21.8, dur: 2.2 },
+        { at: 24.3, dur: 2.2 },
+        { at: 27.0, dur: 2.4 },
+        { at: 30.0, dur: 0.6 }          // - ¡TE QUIERO!
+      ],
+      quote: { at: 19.4, dur: 1.4 }     // frase cursiva (fade)
+    },
+    ending: { total: 36.0 }             // en el video, después viene el cierre propio de TikTok
+  };
+
+  /* ===================== 2. CONFIGURACIÓN VISUAL ===================== */
+  const CONFIG = {
+    seed: 1402,
+    groundY: 880,                                   // y del suelo en el lienzo del árbol
+    heart: { cx: 400, cy: 355, sx: 22.5, sy: 24.4 },// copa: ~720 x 690 unidades
+    flowers: { count: 320, minDist: 25, size: 46, sizeVar: 0.09, insetFactor: 0.94 },
+    flyers: { count: 30 },
+    layout: {
+      landscape: { groundFrac: 0.86, treeHeightFrac: 0.80, finalScale: 0.85, finalRightFrac: 0.955, textMaxWidthFrac: 0.36 },
+      portrait:  { groundFrac0: 0.72, groundFrac1: 0.50, treeHeightFrac: 0.60 }
+    },
+    // ramas: siluetas rellenas que se afinan (w0 = grosor de la base, w1 = punta)
+    trunk: { p: [[400, 886], [392, 760], [412, 600], [401, 300]], w0: 92, w1: 3, pow: 1.25 },
+    branches: [
+      { id: 'D',  sy: 650, p: [[345, 615], [280, 575], [222, 522]],   w0: 30, w1: 1.5 },
+      { id: 'C',  sy: 630, p: [[455, 595], [520, 560], [578, 508]],  w0: 28, w1: 1.5 },
+      { id: 'A',  sy: 585, p: [[330, 560], [215, 490], [90, 395]],   w0: 26, w1: 1.5 },
+      { id: 'B',  sy: 560, p: [[470, 530], [595, 470], [725, 360]],  w0: 24, w1: 1.5 },
+      { id: 'E',  sy: 480, p: [[380, 430], [330, 340], [235, 235]],  w0: 16, w1: 1.2 },
+      { id: 'F',  sy: 455, p: [[430, 400], [470, 320], [575, 215]],  w0: 15, w1: 1.2 },
+      { id: 'D1', parent: 'D', at: 0.6, p: [[240, 590], [190, 520], [150, 465]], w0: 9, w1: 1 },
+      { id: 'C1', parent: 'C', at: 0.6, p: [[560, 560], [620, 500], [665, 450]], w0: 9, w1: 1 },
+      { id: 'A1', parent: 'A', at: 0.5, p: [[200, 420], [170, 350], [150, 300]], w0: 9, w1: 1 },
+      { id: 'B1', parent: 'B', at: 0.5, p: [[620, 410], [660, 330], [690, 270]], w0: 9, w1: 1 },
+      { id: 'E1', parent: 'E', at: 0.6, p: [[300, 300], [300, 250], [300, 190]], w0: 7, w1: 1 },
+      { id: 'F1', parent: 'F', at: 0.6, p: [[500, 320], [520, 270], [540, 190]], w0: 7, w1: 1 }
+    ],
+    texts: {
+      lines: [
+        { cls: 'title', text: '🌻 Feliz Día de las Flores Amarillas, Melany 🌻' },
+        { cls: '',      text: 'Melany, eres mi psicóloga hp de confianza favorita.' },
+        { cls: '',      text: 'Así como el sol ilumina los campos, tú iluminas mis días.' },
+        { cls: '',      text: 'Que estas flores te recuerden lo especial que eres para mí.' },
+        { cls: 'sign',  text: '- ¡TE QUIERO!' }
+      ],
+      quote: 'Eres el sol que hace florecer cada uno de mis días, Melany.'
+    }
+  };
+
+  /* ===================== 3. UTILIDADES ===================== */
+  const NS = 'http://www.w3.org/2000/svg';
+  const $ = (id) => document.getElementById(id);
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const prog = (t, a, b) => clamp((t - a) / (b - a));
+  const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const easeInOutSine = (t) => -(Math.cos(Math.PI * t) - 1) / 2;
+  const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+  const easeInCubic = (t) => t * t * t;
+  const easeInQuad = (t) => t * t;
+  const easeOutBack = (t) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
+
+  function mulberry32(seed) {            // aleatorio con semilla => resultado reproducible
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function el(tag, attrs, parent) {
+    const node = document.createElementNS(NS, tag);
+    for (const k in attrs) node.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+
+  /* ===================== 4. GIRASOLES VECTORIALES (<symbol>) ===================== */
+  // borde festoneado tipo engranaje, como en el video
+  function scallopPath(R, teeth, depth) {
+    let d = '';
+    const n = 240;
+    for (let i = 0; i < n; i++) {
+      const th = (i / n) * Math.PI * 2;
+      const wave = Math.pow(0.5 - 0.5 * Math.cos(teeth * th), 0.7);
+      const r = R * (1 - depth * wave);
+      d += (i ? 'L' : 'M') + (Math.sin(th) * r).toFixed(2) + ' ' + (-Math.cos(th) * r).toFixed(2);
+    }
+    return d + 'Z';
+  }
+
+  function buildSymbols() {
+    const defs = $('defs');
+
+    // Girasol grande inicial: pétalos naranjas con rayado radial y disco negro con semillas
+    const big = el('symbol', { id: 'sunflowerBig', viewBox: '-50 -50 100 100' }, defs);
+    el('path', { d: scallopPath(50, 26, 0.08), fill: '#e9932b' }, big);
+    el('circle', { r: 37, fill: '#f0a92e' }, big);
+    el('circle', { r: 27, fill: '#f6c23a' }, big);
+    for (let i = 0; i < 78; i++) {
+      const a = (i / 78) * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
+      el('line', { x1: (c * 15).toFixed(2), y1: (s * 15).toFixed(2), x2: (c * (i % 2 ? 44 : 47)).toFixed(2), y2: (s * (i % 2 ? 44 : 47)).toFixed(2),
+        stroke: '#d47d1e', 'stroke-width': 1.2, opacity: 0.5 }, big);
+    }
+    el('circle', { r: 15, fill: '#1b110a' }, big);
+    for (let k = 0; k < 46; k++) {
+      const a = k * 2.399963, r = Math.sqrt(k) * 2.0;
+      el('circle', { cx: (Math.cos(a) * r).toFixed(2), cy: (Math.sin(a) * r).toFixed(2), r: 0.95, fill: '#6b4a2a' }, big);
+    }
+
+    // Girasol pequeño (copa, voladores, íconos del título): amarillo dorado con centro marrón
+    const small = el('symbol', { id: 'sunflowerSmall', viewBox: '-50 -50 100 100' }, defs);
+    el('path', { d: scallopPath(50, 22, 0.09), fill: '#f6b60c' }, small);
+    el('circle', { r: 31, fill: '#f9c62b', opacity: 0.55 }, small);
+    el('circle', { r: 9, fill: '#5a2c0b' }, small);
+  }
+
+  /* ===================== 5. ÁRBOL: SILUETAS RELLENAS QUE CRECEN ===================== */
+  const shapes = [];     // {el, pts, hw[], a, b, lastP}
+  const flowers = [];
+
+  function bezier(pts, t) {
+    const u = 1 - t;
+    if (pts.length === 4) {
+      return [u * u * u * pts[0][0] + 3 * u * u * t * pts[1][0] + 3 * u * t * t * pts[2][0] + t * t * t * pts[3][0],
+              u * u * u * pts[0][1] + 3 * u * u * t * pts[1][1] + 3 * u * t * t * pts[2][1] + t * t * t * pts[3][1]];
+    }
+    return [u * u * pts[0][0] + 2 * u * t * pts[1][0] + t * t * pts[2][0],
+            u * u * pts[0][1] + 2 * u * t * pts[1][1] + t * t * pts[2][1]];
+  }
+
+  function sampleCurve(ctrl, N) {          // puntos + normales de la línea central
+    const pts = [];
+    for (let i = 0; i <= N; i++) {
+      const t = i / N, [x, y] = bezier(ctrl, t);
+      const [x2, y2] = bezier(ctrl, Math.min(1, t + 0.01)), [x1, y1] = bezier(ctrl, Math.max(0, t - 0.01));
+      let tx = x2 - x1, ty = y2 - y1; const l = Math.hypot(tx, ty) || 1; tx /= l; ty /= l;
+      pts.push({ x, y, nx: -ty, ny: tx });
+    }
+    return pts;
+  }
+
+  function addShape(def, group, a, b) {
+    const pts = sampleCurve(def.ctrl, 44);
+    const N = pts.length - 1, pw = def.pow || 1.15;
+    const hw = pts.map((_, i) => (def.w1 + (def.w0 - def.w1) * Math.pow(1 - i / N, pw)) / 2);
+    const node = el('path', { class: 'branch', opacity: 0 }, group);
+    const rec = { el: node, pts, hw, a, b, lastP: -1 };
+    shapes.push(rec);
+    return rec;
+  }
+
+  // Dibuja la silueta hasta el progreso p (0..1): la punta es redondeada mientras crece y termina afilada.
+  function drawShape(rec, p) {
+    const { pts, hw } = rec, N = pts.length - 1;
+    const m = p * N, k = Math.min(N, Math.floor(m)), f = m - k;
+    const Lp = [], Rp = [];
+    const push = (pt, h) => {
+      Lp.push((pt.x + pt.nx * h).toFixed(1) + ' ' + (pt.y + pt.ny * h).toFixed(1));
+      Rp.push((pt.x - pt.nx * h).toFixed(1) + ' ' + (pt.y - pt.ny * h).toFixed(1));
+    };
+    for (let i = 0; i <= k; i++) push(pts[i], hw[i]);
+    let tipH = hw[k];
+    if (f > 0 && k < N) {
+      const A = pts[k], B = pts[k + 1];
+      tipH = lerp(hw[k], hw[k + 1], f);
+      push({ x: lerp(A.x, B.x, f), y: lerp(A.y, B.y, f), nx: lerp(A.nx, B.nx, f), ny: lerp(A.ny, B.ny, f) }, tipH);
+    }
+    const r = Math.max(tipH, 0.3).toFixed(2);
+    rec.el.setAttribute('d', 'M' + Lp.join('L') + 'A' + r + ' ' + r + ' 0 0 0 ' + Rp[Rp.length - 1] + 'L' + Rp.slice(0, -1).reverse().join('L') + 'Z');
+  }
+
+  function heartPoint(t, sx, sy) {
+    return {
+      x: CONFIG.heart.cx + 16 * sx * Math.pow(Math.sin(t), 3),
+      y: CONFIG.heart.cy - sy * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t))
+    };
+  }
+
+  function pointInPolygon(x, y, poly) {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const a = poly[i], b = poly[j];
+      if ((a.y > y) !== (b.y > y) && x < ((b.x - a.x) * (y - a.y)) / (b.y - a.y) + a.x) inside = !inside;
+    }
+    return inside;
+  }
+
+  function buildTree() {
+    const rand = mulberry32(CONFIG.seed);
+    const T = TIMELINE.growth;
+    const gBranches = $('branches'), gBlooms = $('blooms');
+
+    // tronco
+    const tr = CONFIG.trunk;
+    const trunkRec = addShape({ ctrl: tr.p, w0: tr.w0, w1: tr.w1, pow: tr.pow }, gBranches, T.trunk[0], T.trunk[1]);
+    const byId = { trunk: trunkRec };
+    const defById = {};
+
+    // ramas y ramitas (escalonadas)
+    CONFIG.branches.forEach((b, i) => {
+      let start;
+      if (b.parent) {
+        const par = byId[b.parent], pt = par.pts[Math.round(b.at * (par.pts.length - 1))];
+        start = [pt.x, pt.y];
+      } else {
+        const pt = trunkRec.pts.reduce((best, q) => (Math.abs(q.y - b.sy) < Math.abs(best.y - b.sy) ? q : best), trunkRec.pts[0]);
+        start = [pt.x, pt.y];
+      }
+      const a = T.branches.start + i * T.branches.stagger;
+      byId[b.id] = addShape({ ctrl: [start, ...b.p], w0: b.w0, w1: b.w1, pow: 1.1 }, gBranches, a, a + T.branches.dur);
+      defById[b.id] = b;
+    });
+
+    // copa: girasoles repartidos (dardos con distancia mínima) dentro de un corazón
+    const H = CONFIG.heart, F = CONFIG.flowers;
+    const poly = [];
+    for (let i = 0; i < 200; i++) poly.push(heartPoint((i / 200) * Math.PI * 2, H.sx, H.sy));
+    const top = Math.min(...poly.map((p) => p.y)), bot = Math.max(...poly.map((p) => p.y));
+    const mid = (top + bot) / 2;
+    const inner = poly.map((p) => ({ x: H.cx + (p.x - H.cx) * F.insetFactor, y: mid + (p.y - mid) * F.insetFactor }));
+    const minX = H.cx - 16 * H.sx, spanX = 32 * H.sx;
+    let tries = 0;
+    while (flowers.length < F.count && tries++ < 40000) {
+      const x = minX + rand() * spanX, y = top + rand() * (bot - top);
+      if (!pointInPolygon(x, y, inner)) continue;
+      if (flowers.some((q) => Math.hypot(q.x - x, q.y - y) < F.minDist)) continue;
+      flowers.push({
+        x, y,
+        scale: (F.size / 100) * (1 - F.sizeVar + rand() * 2 * F.sizeVar),
+        rot: rand() * 360, spin: (rand() < 0.5 ? -1 : 1) * (40 + rand() * 80),
+        phase: rand() * 6.28, sway: 1 + rand() * 2.5
+      });
+    }
+    // orden de aparición aleatorio (con semilla) repartido en la ventana de floración
+    const order = flowers.map((f, i) => ({ f, s: rand() })).sort((p, q) => p.s - q.s);
+    const W = TIMELINE.flowering;
+    order.forEach((o, i) => {
+      o.f.dur = 0.55 + rand() * 0.4;
+      o.f.delay = W.start + (i / (order.length - 1)) * (W.end - W.start - 0.9);
+    });
+    flowers.forEach((f) => {
+      f.g = el('g', { style: 'display:none' }, gBlooms);
+      el('use', { href: '#sunflowerSmall', x: -50, y: -50, width: 100, height: 100 }, f.g);
+      f.vis = false;
+    });
+  }
+
+  /* ===================== 6. TEXTO: MÁQUINA DE ESCRIBIR CON CURSOR "_" ===================== */
+  const textItems = [];
+  let caret = null;
+
+  function buildText(container, text, cls, win, isP) {
+    const p = isP ? container : document.createElement('p');
+    if (!isP) { p.className = 'line ' + cls; container.appendChild(p); }
+    p.setAttribute('aria-label', text);
+    const chars = [];
+    text.split(' ').forEach((word, wi) => {
+      if (wi > 0) p.appendChild(document.createTextNode(' '));
+      const w = document.createElement('span');
+      w.className = 'w'; w.setAttribute('aria-hidden', 'true');
+      Array.from(word).forEach((ch) => {
+        const c = document.createElement('span');
+        if (ch === '🌻') {                                   // ícono vectorial en lugar de emoji
+          c.className = 'c ico';
+          c.innerHTML = '<svg viewBox="-50 -50 100 100"><use href="#sunflowerSmall" x="-50" y="-50" width="100" height="100"/></svg>';
+        } else { c.className = 'c'; c.textContent = ch; }
+        w.appendChild(c); chars.push(c);
+      });
+      p.appendChild(w);
+    });
+    if (!isP) textItems.push({ chars, a: win.at, b: win.at + win.dur, shown: -1 });
+    return chars;
+  }
+
+  function buildMessage() {
+    const box = $('message');
+    CONFIG.texts.lines.forEach((ln, i) => buildText(box, ln.text, ln.cls, TIMELINE.message.lines[i], false));
+    buildText($('quote'), CONFIG.texts.quote, '', TIMELINE.message.quote, true).forEach((c) => { c.style.opacity = 1; });  // la frase entra con fade, no por letras
+    caret = document.createElement('span');
+    caret.className = 'caret'; caret.textContent = '_'; caret.setAttribute('aria-hidden', 'true');
+  }
+
+  function renderText(T) {
+    let activeIdx = -1;
+    textItems.forEach((it, idx) => {
+      const n = it.chars.length, count = Math.floor(prog(T, it.a, it.b) * n + (T >= it.b ? 1 : 0));
+      if (count !== it.shown) {                           // solo se toca el DOM cuando cambia
+        for (let i = 0; i < n; i++) it.chars[i].style.opacity = i < count ? 1 : 0;
+        it.shown = count;
+      }
+      if (T >= it.a) activeIdx = idx;
+    });
+    // cursor "_" parpadeante tras el último carácter escrito
+    const last = textItems[textItems.length - 1];
+    if (activeIdx >= 0 && T < last.b + 0.9) {
+      const it = textItems[activeIdx], n = Math.min(it.chars.length, Math.max(0, it.shown));
+      if (n > 0) it.chars[n - 1].after(caret); else it.chars[0].before(caret);
+      caret.style.visibility = Math.floor(T * 2.4) % 2 === 0 ? 'visible' : 'hidden';
+    } else if (caret.parentNode) caret.remove();
+  }
+
+  /* ===================== 7. GIRASOLES QUE SE DESPRENDEN, CAEN Y RUEDAN ===================== */
+  const flyers = [];
+
+  function buildFlyers() {
+    const rand = mulberry32(CONFIG.seed + 77);
+    const M = TIMELINE.message, C = CONFIG.flyers, layer = $('flyerLayer');
+    const cand = flowers.filter((f) => f.y > 420 && f.x < 470);   // borde inferior izquierdo de la copa
+    for (let i = 0; i < C.count; i++) {
+      const g = el('g', { style: 'display:none' }, layer);
+      el('use', { href: '#sunflowerSmall', x: -50, y: -50, width: 100, height: 100 }, g);
+      flyers.push({
+        g, src: cand[Math.floor(rand() * cand.length)],
+        t0: lerp(M.flyersStart, M.flyersLastStart, i / (C.count - 1)) + (rand() - 0.5) * 0.5,
+        d1: 1.8 + rand() * 1.6,                        // caída
+        d2: 1.2 + rand() * 1.8,                        // rodar por el suelo
+        dx1: -(0.06 + rand() * 0.38),                  // deriva a la izquierda (fracción del ancho)
+        dist2: 0.05 + rand() * 0.25,                   // recorrido rodando (fracción del ancho)
+        amp: 0.006 + rand() * 0.014, freq: 1 + rand() * 1.5, phase: rand() * 6.28,
+        rot0: rand() * 360, spin: (rand() < 0.5 ? -1 : 1) * (120 + rand() * 260),
+        sizeVar: 0.8 + rand() * 0.4, vis: false
+      });
+    }
+  }
+
+  function renderFlyers(T) {
+    const L = layout, dia0 = clamp(L.W * 0.019, 14, 36);
+    for (const f of flyers) {
+      const u1 = (T - f.t0) / f.d1;
+      if (u1 <= 0 || T > f.t0 + f.d1 + f.d2) { if (f.vis) { f.g.style.display = 'none'; f.vis = false; } continue; }
+      if (!f.vis) { f.g.style.display = ''; f.vis = true; }
+      const dia = dia0 * f.sizeVar, r = dia / 2;
+      const sx = L.baseXf + (f.src.x - 400) * L.k1, sy = L.g1 + (f.src.y - CONFIG.groundY) * L.k1;
+      const gy = L.g1 - r;
+      let x, y, rot, op = 1;
+      if (u1 < 1) {                                    // fase 1: cae con vaivén y deriva a la izquierda
+        x = sx + f.dx1 * L.W * Math.pow(u1, 0.9) + Math.sin(u1 * Math.PI * f.freq + f.phase) * f.amp * L.W;
+        y = lerp(sy, gy, Math.pow(u1, 1.9));
+        rot = f.rot0 + f.spin * u1;
+      } else {                                         // fase 2: rueda por la línea del suelo y se desvanece
+        const u2 = (T - f.t0 - f.d1) / f.d2, e = easeOutCubic(clamp(u2));
+        const x1 = sx + f.dx1 * L.W + Math.sin(Math.PI * f.freq + f.phase) * f.amp * L.W;
+        const dist = f.dist2 * L.W * e;
+        x = x1 - dist; y = gy;
+        rot = f.rot0 + f.spin - (dist / r) * 57.2958;
+        op = 1 - prog(u2, 0.7, 1);
+      }
+      const sc = (dia / 100) * (0.4 + 0.6 * easeOutCubic(prog(u1, 0, 0.15)));
+      f.g.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${sc.toFixed(3)})`);
+      f.g.setAttribute('opacity', op.toFixed(3));
+    }
+  }
+
+  /* ===================== 8. LAYOUT RESPONSIVE ===================== */
+  let layout = {};
+
+  function computeLayout() {
+    const W = window.innerWidth, H = window.innerHeight;
+    const portrait = W / H < 0.9;
+    const root = document.documentElement.style;
+    const CL = CONFIG.layout;
+    const span = CONFIG.groundY - Math.min(...flowers.map((f) => f.y)) + 25;   // altura del árbol en unidades (~800)
+    const heartW = 32 * CONFIG.heart.sx;
+    let g0, g1, k0, sf, baseXf;
+
+    if (!portrait) {
+      const c = CL.landscape;
+      g0 = g1 = c.groundFrac * H;
+      k0 = Math.min((c.treeHeightFrac * H) / span, (0.85 * W) / heartW);
+      sf = Math.min(c.finalScale, (0.40 * W) / (heartW * k0));
+      baseXf = c.finalRightFrac * W - (heartW * k0 * sf) / 2;
+      const heartLeft = baseXf - (heartW * k0 * sf) / 2, left = 0.07 * W;
+      const width = Math.min(c.textMaxWidthFrac * W, heartLeft - left - 0.03 * W);
+      root.setProperty('--msg-left', left + 'px');
+      root.setProperty('--msg-width', Math.max(200, width) + 'px');
+      root.setProperty('--msg-top', 0.12 * H + 'px');
+      root.setProperty('--msg-bottom', H - g1 + 0.09 * H + 'px');
+      root.setProperty('--quote-right', W - (baseXf + 0.035 * W) + 'px');
+      root.setProperty('--quote-bottom', H - g1 + 0.03 * H + 'px');
+    } else {
+      const c = CL.portrait;
+      g0 = c.groundFrac0 * H; g1 = c.groundFrac1 * H;
+      k0 = Math.min((c.treeHeightFrac * H) / span, (0.92 * W) / heartW);
+      sf = Math.min(1, (0.42 * H) / (span * k0), (0.72 * W) / (heartW * k0));
+      baseXf = W / 2;
+      root.setProperty('--msg-left', 0.07 * W + 'px');
+      root.setProperty('--msg-width', 0.86 * W + 'px');
+      root.setProperty('--msg-top', g1 + 0.04 * H + 'px');
+      root.setProperty('--msg-bottom', 0.15 * H + 'px');
+      root.setProperty('--quote-bottom', 0.05 * H + 'px');
+    }
+
+    const baseX0 = W / 2;
+    const wrap = $('treeWrap');
+    wrap.style.left = baseX0 - 400 * k0 + 'px';
+    wrap.style.top = g0 - CONFIG.groundY * k0 + 'px';
+    wrap.style.width = 800 * k0 + 'px';
+    wrap.style.height = 900 * k0 + 'px';
+    wrap.style.transformOrigin = `${400 * k0}px ${CONFIG.groundY * k0}px`;
+
+    const D = portrait ? Math.min(0.26 * H, 0.5 * W) : 0.26 * H;
+    const cx = W / 2, cy = 0.48 * H;
+    const fx = $('fx');
+    fx.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const hit = $('introHit').firstElementChild;
+    hit.setAttribute('cx', cx); hit.setAttribute('cy', cy); hit.setAttribute('r', D * 0.65);
+
+    layout = { W, H, portrait, g0, g1, k0, sf, k1: k0 * sf, baseX0, baseXf, dx: baseXf - baseX0, D, cx, cy };
+  }
+
+  /* ===================== 9. RENDER (función pura de T) ===================== */
+  const dom = {};
+  let clicked = false, origin = 0, cursorFreeze = null;
+
+  function renderIntro(T) {
+    const L = layout, G = TIMELINE.growth, I = TIMELINE.intro;
+    const { D, cx, cy } = L;
+    const flower = dom.introFlower, dot = dom.seedDot, callout = dom.callout, hint = dom.hint;
+    const dotR = Math.max(4, D * 0.05);
+
+    // etiqueta con línea (a partir de las proporciones del video)
+    callout.setAttribute('points',
+      [[0.10, 0.07], [0.20, 0.19], [0.78, 0.19]].map(([a, b]) => (cx + a * D).toFixed(1) + ',' + (cy + b * D).toFixed(1)).join(' '));
+    hint.setAttribute('x', cx + 0.40 * D); hint.setAttribute('y', cy + 0.15 * D);
+    hint.setAttribute('font-size', Math.max(13, D * 0.12));
+
+    if (!clicked) {
+      const appear = easeOutCubic(prog(T, 0, 0.4));
+      const breathe = 1 + 0.02 * Math.sin(T * 4);
+      const dip = 1 - 0.05 * (prog(T, I.pressAt, I.pressAt + 0.12) - prog(T, I.clickAt, I.clickAt + 0.15));
+      flower.setAttribute('transform', `translate(${cx} ${cy}) scale(${((D / 100) * appear * breathe * dip).toFixed(3)})`);
+      flower.setAttribute('opacity', 1);
+      dot.setAttribute('opacity', 0);
+      callout.setAttribute('opacity', appear.toFixed(3)); hint.setAttribute('opacity', appear.toFixed(3));
+    } else {
+      const k = prog(T, G.shrink[0], G.shrink[1]);
+      const s = lerp(1, 0.06, easeInOutCubic(k));
+      flower.setAttribute('transform', `translate(${cx} ${cy}) scale(${((D / 100) * s).toFixed(4)})`);
+      flower.setAttribute('opacity', (1 - prog(k, 0.7, 1)).toFixed(3));
+      const fall = easeInQuad(prog(T, G.fall[0], G.fall[1]));
+      dot.setAttribute('cx', lerp(cx, L.baseX0, fall)); dot.setAttribute('cy', lerp(cy, L.g0 - dotR, fall));
+      dot.setAttribute('r', dotR);
+      dot.setAttribute('opacity', (prog(k, 0.65, 1) * (1 - prog(T, G.dotFade[0], G.dotFade[1]))).toFixed(3));
+      const gone = (1 - prog(T, G.calloutFade[0], G.calloutFade[1])).toFixed(3);
+      callout.setAttribute('opacity', gone); hint.setAttribute('opacity', gone);
+    }
+  }
+
+  function renderGround(T, e) {
+    const G = TIMELINE.growth, s = easeOutCubic(prog(T, G.ground[0], G.ground[1]));
+    const gy = lerp(layout.g0, layout.g1, e);
+    dom.ground.style.opacity = s > 0.001 ? 1 : 0;
+    dom.ground.style.transform = `translateY(${(gy - 1.25).toFixed(1)}px) scaleX(${s.toFixed(4)})`;
+  }
+
+  function renderShapes(T) {
+    for (const s of shapes) {
+      const p = easeInOutSine(prog(T, s.a, s.b));
+      if (p === s.lastP) continue;
+      s.lastP = p;
+      if (p <= 0.001) { s.el.setAttribute('opacity', 0); continue; }
+      s.el.setAttribute('opacity', 1);
+      drawShape(s, p);
+    }
+  }
+
+  function renderBlooms(T) {
+    for (const f of flowers) {
+      const p = prog(T, f.delay, f.delay + f.dur);
+      if (p <= 0) { if (f.vis) { f.g.style.display = 'none'; f.vis = false; } continue; }
+      if (!f.vis) { f.g.style.display = ''; f.vis = true; }
+      const rot = f.rot + (1 - p) * f.spin + (p >= 1 ? Math.sin(T * 1.4 + f.phase) * f.sway : 0);
+      f.g.setAttribute('transform', `translate(${f.x.toFixed(1)} ${f.y.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${(f.scale * easeOutBack(p)).toFixed(3)})`);
+    }
+  }
+
+  function renderCursor(T, now) {
+    const I = TIMELINE.intro, L = layout, D = L.D;
+    let Tc = T, alpha = 1;
+    if (cursorFreeze) { Tc = cursorFreeze.T; alpha = 1 - clamp((now - cursorFreeze.at) / 250); }
+    else alpha = 1 - prog(T, 4.4, 5.0);
+    alpha *= prog(Tc, 0, 0.3);
+    const from = { x: L.cx + 0.10 * D, y: L.cy + 0.80 * D }, to = { x: L.cx - 0.06 * D, y: L.cy + 0.10 * D };
+    const k = easeInOutCubic(prog(Tc, I.cursorStart, I.cursorArrive));
+    const bend = Math.sin(Math.PI * k) * 0.12 * D;
+    let x = lerp(from.x, to.x, k) + bend, y = lerp(from.y, to.y, k);
+    const after = !cursorFreeze && Tc >= I.clickAt;
+    if (after) {                                          // tras el clic: flecha que se aparta y queda en reposo
+      const r = easeInOutCubic(prog(Tc, I.clickAt, I.clickAt + 2.2));
+      x = lerp(to.x, L.cx + 0.06 * L.W, r); y = lerp(to.y, L.g0 - 0.12 * L.H, r);
+    }
+    dom.cursor.classList.toggle('is-arrow', after);
+    const press = prog(Tc, I.pressAt, I.pressAt + 0.12) - prog(Tc, I.clickAt, I.clickAt + 0.15);
+    dom.cursor.style.opacity = alpha.toFixed(3);
+    dom.cursor.style.transform = `translate(${(x - (after ? 3.3 : 12.5)).toFixed(1)}px, ${(y - (after ? 2.2 : 3.1)).toFixed(1)}px) scale(${(1 - 0.15 * press).toFixed(3)})`;
+    const rp = cursorFreeze ? 0 : prog(Tc, I.pressAt + 0.05, I.pressAt + 0.7);
+    dom.ripple.style.opacity = rp > 0 && rp < 1 ? ((1 - rp) * 0.8).toFixed(3) : 0;
+    dom.ripple.style.transform = `translate(${(to.x - 30).toFixed(1)}px, ${(to.y - 30).toFixed(1)}px) scale(${(0.2 + rp * 1.1).toFixed(3)})`;
+  }
+
+  function render(T, now) {
+    const R = TIMELINE.reposition, e = easeInOutCubic(prog(T, R.start, R.end));
+    dom.treeWrap.style.transform =
+      `translate(${(layout.dx * e).toFixed(1)}px, ${((layout.g1 - layout.g0) * e).toFixed(1)}px) scale(${lerp(1, layout.sf, e).toFixed(4)})`;
+    renderIntro(T);
+    renderGround(T, e);
+    renderShapes(T);
+    renderBlooms(T);
+    renderFlyers(T);
+    renderText(T);
+    const q = TIMELINE.message.quote;
+    dom.quote.style.opacity = easeInOutSine(prog(T, q.at, q.at + q.dur)).toFixed(3);
+    renderCursor(T, now);
+    dom.replay.classList.toggle('show', T >= TIMELINE.ending.total - 1);
+  }
+
+  /* ===================== 10. CONTROL DE LA SECUENCIA ===================== */
+  function beginGrowth(byUser, now, T) {
+    if (clicked) return;
+    clicked = true;
+    if (byUser && T < TIMELINE.intro.pressAt) cursorFreeze = { T, at: now };
+    origin = now - TIMELINE.growth.start * 1000;         // el crecimiento arranca justo tras el clic
+    dom.introHit.style.pointerEvents = 'none';
+  }
+
+  function restart() {
+    clicked = false; cursorFreeze = null;
+    origin = performance.now();
+    dom.introHit.style.pointerEvents = 'auto';
+    textItems.forEach((it) => { it.shown = -1; });
+    shapes.forEach((s) => { s.lastP = -1; });
+  }
+
+  let currentT = 0;
+  function frame(now) {
+    let T = (now - origin) / 1000;
+    if (!clicked && T >= TIMELINE.intro.clickAt) {       // fallback: el cursor animado hace el clic
+      beginGrowth(false, now, T);
+      T = (now - origin) / 1000;
+    }
+    currentT = T;
+    render(T, now);
+    requestAnimationFrame(frame);
+  }
+
+  const userClick = () => beginGrowth(true, performance.now(), currentT);
+
+  /* ===================== 11. ARRANQUE ===================== */
+  function init() {
+    ['treeWrap', 'ground', 'seedDot', 'callout', 'hint', 'introFlower', 'introHit', 'cursor', 'ripple', 'replay', 'quote']
+      .forEach((id) => { dom[id] = $(id); });
+    buildSymbols();
+    buildTree();
+    buildMessage();
+    computeLayout();
+    buildFlyers();
+
+    dom.introHit.addEventListener('click', userClick);
+    dom.introHit.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); userClick(); }
+    });
+    dom.replay.addEventListener('click', restart);
+    window.addEventListener('keydown', (e) => { if (e.key === 'r' || e.key === 'R') restart(); });
+    window.addEventListener('resize', () => { computeLayout(); render(currentT, performance.now()); });
+
+    origin = performance.now();
+    requestAnimationFrame(frame);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+
+</script>
+</body>
+</html>
